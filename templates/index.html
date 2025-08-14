@@ -1,243 +1,483 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <title>اكتشاف أقرب متحدث</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <style>
-      :root{
-        --bg: #0b0c10;
-        --card: #121318;
-        --muted: #a2a7b0;
-        --text: #e9edf3;
-        --accent: #4f7cff;
-        --success:#22c55e;
-        --danger:#ef4444;
-        --warn:#f59e0b;
-        --ring: rgba(79,124,255,.35);
-        --shadow: 0 10px 25px rgba(0,0,0,.25);
-      }
-      @media (prefers-color-scheme: light){
-        :root{
-          --bg:#f7f8fb; --card:#ffffff; --muted:#6b7280; --text:#111827;
-          --accent:#3056ff; --ring: rgba(48,86,255,.2); --shadow:0 10px 20px rgba(0,0,0,.08);
-        }
-      }
-      *{box-sizing: border-box}
-      html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family: "Tajawal", system-ui, -apple-system, Segoe UI, Roboto, Arial}
-      a{color:inherit}
-      .container{max-width: 980px; margin: 32px auto; padding: 0 20px}
-      header{
-        display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px
-      }
-      .brand{
-        display:flex; align-items:center; gap:12px
-      }
-      .logo{
-        width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,var(--accent),#7c4dff);
-        box-shadow: var(--shadow);
-      }
-      h1{font-size: clamp(22px, 3vw, 28px); margin:0}
-      .sub{color:var(--muted); margin-top:4px; font-size:14px}
-      .panel{
-        background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:18px; box-shadow: var(--shadow)
-      }
-      .toolbar{
-        display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between
-      }
-      .actions{display:flex; gap:10px; flex-wrap:wrap}
-      button{
-        appearance:none; border:none; border-radius:12px; padding:12px 16px; font-weight:600; cursor:pointer;
-        background:var(--accent); color:white; transition: transform .06s ease, box-shadow .2s ease;
-        box-shadow: 0 6px 14px var(--ring);
-      }
-      button.secondary{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.12)}
-      button.ghost{background:transparent; color:var(--muted); border:1px dashed rgba(255,255,255,.15)}
-      button:active{transform: translateY(1px)}
-      .statuses{display:flex; gap:10px; flex-wrap:wrap}
-      .badge{
-        display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:999px; font-size:13px;
-        background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08)
-      }
-      .dot{
-        width:8px; height:8px; border-radius:50%; background:var(--muted)
-      }
-      .dot.ok{background:var(--success)}
-      .dot.err{background:var(--danger)}
-      .dot.warn{background:var(--warn)}
-      .hint{color:var(--muted); font-size: 14px; margin-top:10px}
-      .grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:14px; margin-top:16px}
-      .card{
-        background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.005));
-        border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; position:relative; overflow:hidden
-      }
-      .card.top{outline: 2px solid var(--accent); box-shadow: 0 0 0 6px var(--ring)}
-      .card header{display:flex; align-items:center; justify-content:space-between}
-      .avatar{
-        width:42px; height:42px; border-radius:12px; background: radial-gradient(120px 80px at 30% 20%, #ffffff22, transparent), linear-gradient(135deg,#2dd4bf33,#60a5fa33);
-        display:flex; align-items:center; justify-content:center; font-weight:700
-      }
-      .rank{
-        position:absolute; top:10px; left:10px; background:rgba(0,0,0,.35); color:#fff; padding:4px 10px; border-radius:999px; font-size:12px
-      }
-      .db{
-        display:inline-flex; align-items:center; gap:6px; background: rgba(79,124,255,.14);
-        color: var(--text); border:1px solid var(--ring); padding:6px 10px; border-radius:999px; font-weight:700; font-variant-numeric: tabular-nums
-      }
-      .speech{
-        display:inline-flex; align-items:center; gap:6px; padding:5px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.12)
-      }
-      .speech .blip{
-        width:10px; height:10px; border-radius:50%; background: var(--success); box-shadow: 0 0 0 0 rgba(34,197,94,.7);
-        animation: pulse 1.6s infinite;
-      }
-      @keyframes pulse{
-        0%{box-shadow: 0 0 0 0 rgba(34,197,94,.7)}
-        70%{box-shadow: 0 0 0 10px rgba(34,197,94,0)}
-        100%{box-shadow: 0 0 0 0 rgba(34,197,94,0)}
-      }
-      .meter{
-        height:8px; background:rgba(255,255,255,.06); border-radius:999px; overflow:hidden; margin-top:10px
-      }
-      .bar{
-        height:100%; width:12%; background: linear-gradient(90deg,#60a5fa,#4f46e5); transition: width .25s ease
-      }
-      footer{margin:30px 0 10px; color:var(--muted); font-size:13px; text-align:center}
-      .spacer{height:6px}
-      .btns{display:flex; gap:8px; flex-wrap:wrap}
-      .kbd{font-family: ui-monospace, Menlo, Consolas, monospace; padding:2px 6px; border:1px solid rgba(255,255,255,.2); border-radius:6px; font-size:12px}
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <div class="brand">
-          <div class="logo" aria-hidden="true"></div>
-          <div>
-            <h1>اكتشاف أقرب متحدث</h1>
-            <div class="sub">ترتيب المتحدثين آنيًا حسب شدة الصوت (dB) مع مؤشر الكلام</div>
-          </div>
-        </div>
-        <div class="btns">
-          <button id="startBtn" title="ابدأ الالتقاط">ابدأ</button>
-          <button class="secondary" id="saveTopBtn" title="حفظ WAV">حفظ صوت الأقرب</button>
-        </div>
-      </header>
 
-      <div class="panel">
-        <div class="toolbar">
-          <div class="statuses">
-            <span class="badge" id="connBadge"><span class="dot" id="connDot"></span> اتصال: <strong id="connTxt">غير متصل</strong></span>
-            <span class="badge" id="micBadge"><span class="dot" id="micDot"></span> الميكروفون: <strong id="micTxt">غير محدد</strong></span>
-            <span class="badge"><span class="dot warn"></span> تلميح: افتح الصفحة على عدة أجهزة لتمثيل عدة متحدثين</span>
-          </div>
-          <div class="actions">
-            <button class="ghost" id="clearBtn">إعادة تعيين</button>
-          </div>
+<head>
+  <meta charset="utf-8" />
+  <title>اكتشاف أقرب متحدث</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: #121318;
+      --muted: #a2a7b0;
+      --text: #e9edf3;
+      --accent: #4f7cff;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ring: rgba(79, 124, 255, .35);
+      --shadow: 0 10px 25px rgba(0, 0, 0, .25)
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f7f8fb;
+        --card: #ffffff;
+        --muted: #6b7280;
+        --text: #111827;
+        --accent: #3056ff;
+        --ring: rgba(48, 86, 255, .2);
+        --shadow: 0 10px 20px rgba(0, 0, 0, .08)
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Tajawal", system-ui, -apple-system, Segoe UI, Roboto, Arial
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 32px auto;
+      padding: 0 20px
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #7c4dff);
+      box-shadow: var(--shadow)
+    }
+
+    h1 {
+      font-size: clamp(22px, 3vw, 28px);
+      margin: 0
+    }
+
+    .sub {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 14px
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow)
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      transition: transform .06s ease, box-shadow .2s ease;
+      box-shadow: 0 6px 14px var(--ring)
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed rgba(255, 255, 255, .15)
+    }
+
+    button:active {
+      transform: translateY(1px)
+    }
+
+    .statuses {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted)
+    }
+
+    .dot.ok {
+      background: var(--success)
+    }
+
+    .dot.err {
+      background: var(--danger)
+    }
+
+    .dot.warn {
+      background: var(--warn)
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px
+    }
+
+    /* === two-column layout: right column is bigger === */
+    .split {
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 18px;
+      margin-top: 12px
+    }
+
+    /* put the main cards first in markup so they render on the visually-right side in RTL */
+    @media (max-width: 900px) {
+      .split {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Cards grid inside the main (right) column */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, .005));
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 14px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden
+    }
+
+    .card.top {
+      outline: 2px solid var(--accent);
+      box-shadow: 0 0 0 6px var(--ring)
+    }
+
+    .card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: radial-gradient(120px 80px at 30% 20%, #ffffff22, transparent), linear-gradient(135deg, #2dd4bf33, #60a5fa33);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700
+    }
+
+    .rank {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, .35);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px
+    }
+
+    .db {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(79, 124, 255, .14);
+      color: var(--text);
+      border: 1px solid var(--ring);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums
+    }
+
+    .speech {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .speech .blip {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, .7);
+      animation: pulse 1.6s infinite
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, .7)
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0)
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0)
+      }
+    }
+
+    .meter {
+      height: 10px;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px
+    }
+
+    .bar {
+      height: 100%;
+      width: 12%;
+      background: linear-gradient(90deg, #60a5fa, #4f46e5);
+      transition: width .25s ease
+    }
+
+    footer {
+      margin: 30px 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center
+    }
+
+    .side-box {
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 12px;
+      padding: 14px
+    }
+
+    .btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>اكتشاف أقرب متحدث</h1>
+          <div class="sub">ترتيب المتحدثين آنيًا حسب شدة الصوت (dB) مع مؤشر الكلام</div>
         </div>
+      </div>
+      <div class="btns">
+        <button id="startBtn" title="ابدأ الالتقاط">ابدأ</button>
+        <button class="secondary" id="saveTopBtn" title="حفظ WAV">حفظ صوت الأقرب</button>
+      </div>
+    </header>
 
-        <p class="hint">يظهر أعلى بطاقة باللون المميز (الأقرب). شريط القوة يعكس متوسط الديسيبل.</p>
-
-        <div id="cards" class="grid" aria-live="polite" aria-busy="false"></div>
+    <div class="panel">
+      <div class="toolbar">
+        <div class="statuses">
+          <span class="badge" id="connBadge"><span class="dot" id="connDot"></span> اتصال: <strong id="connTxt">غير
+              متصل</strong></span>
+          <span class="badge" id="micBadge"><span class="dot" id="micDot"></span> الميكروفون: <strong id="micTxt">غير
+              محدد</strong></span>
+          <span class="badge"><span class="dot warn"></span> تلميح: افتح الصفحة على عدة أجهزة لتمثيل عدة متحدثين</span>
+        </div>
+        <div class="actions">
+          <button class="ghost" id="clearBtn">إعادة تعيين</button>
+        </div>
       </div>
 
-      <footer>بُني باستخدام Flask + Socket.IO + WebRTC VAD.</footer>
+      <!-- split layout: main (cards) on the visually-right, side (hint/help) on the left -->
+      <div class="split">
+        <!-- MAIN (wider, right in RTL) -->
+        <div>
+          <p class="hint">أعلى بطاقة مميزة تعني الأقرب. شريط القوة يعكس متوسط الديسيبل.</p>
+          <div id="cards" class="grid" aria-live="polite" aria-busy="false"></div>
+        </div>
+
+        <!-- SIDE (narrower, left in RTL) -->
+        <aside class="side-box">
+          <h3 style="margin:0 0 10px">ضبط سريع</h3>
+          <ul style="margin:0 0 14px 0; padding:0 18px; color:var(--muted); line-height:1.7">
+            <li>تأكد من اختيار الميكروفون الصحيح من النظام.</li>
+            <li>إن أردت تمثيل عدة متحدثين، افتح الصفحة على عدة أجهزة.</li>
+            <li>اضغط <strong>حفظ صوت الأقرب</strong> لتسجيل WAV للمتصدر.</li>
+          </ul>
+          <div class="btns">
+            <button id="startBtn2">ابدأ الآن</button>
+            <button class="secondary" id="saveTopBtn2">حفظ الأقرب</button>
+          </div>
+        </aside>
+      </div>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
-    <script src="/static/client.js"></script>
+    <footer>بُني باستخدام Flask + Socket.IO + WebRTC VAD.</footer>
+  </div>
 
-    <script>
-      // تحسينات واجهة (بدون تعديل جوهري في client.js)
-      const connDot = document.getElementById('connDot');
-      const connTxt = document.getElementById('connTxt');
-      const micDot  = document.getElementById('micDot');
-      const micTxt  = document.getElementById('micTxt');
-      const cardsEl = document.getElementById('cards');
-      const clearBtn = document.getElementById('clearBtn');
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/static/client.js"></script>
 
-      // سيتم استدعاؤها من client.js عند تغيّر الحالة
-      window.uiSetConnection = function(ok){
-        connDot.className = 'dot ' + (ok ? 'ok' : 'err');
-        connTxt.textContent = ok ? 'متصل' : 'غير متصل';
-      }
-      window.uiSetMic = function(ok, label){
-        micDot.className = 'dot ' + (ok ? 'ok' : 'err');
-        micTxt.textContent = ok ? (label || 'مُفعّل') : 'غير متاح';
-      }
+  <script>
+    // keep existing hooks; mirror to side buttons for convenience
+    const connDot = document.getElementById('connDot');
+    const connTxt = document.getElementById('connTxt');
+    const micDot = document.getElementById('micDot');
+    const micTxt = document.getElementById('micTxt');
+    const cardsEl = document.getElementById('cards');
+    const clearBtn = document.getElementById('clearBtn');
 
-      // دالة عرض البطاقات — يمكن استخدامها مباشرة من client.js
-      window.uiRenderRanking = function(list){
-        cardsEl.innerHTML = '';
-        list.forEach((s, idx) => {
-          const card = document.createElement('div');
-          card.className = 'card' + (idx === 0 ? ' top' : '');
-          card.setAttribute('role','group');
-          card.setAttribute('aria-label', `متحدث ${s.id} بمتوسط ${s.avg_db} ديسيبل`);
+    (function mirrorButtons() {
+      const b1 = document.getElementById('startBtn');
+      const b2 = document.getElementById('startBtn2');
+      if (b1 && b2) b2.onclick = () => b1.click();
+      const s1 = document.getElementById('saveTopBtn');
+      const s2 = document.getElementById('saveTopBtn2');
+      if (s1 && s2) s2.onclick = () => s1.click();
+    })();
 
-          const header = document.createElement('header');
+    // called from client.js
+    window.uiSetConnection = function (ok) {
+      connDot.className = 'dot ' + (ok ? 'ok' : 'err');
+      connTxt.textContent = ok ? 'متصل' : 'غير متصل';
+    }
+    window.uiSetMic = function (ok, label) {
+      micDot.className = 'dot ' + (ok ? 'ok' : 'err');
+      micTxt.textContent = ok ? (label || 'مُفعّل') : 'غير متاح';
+    }
 
-          const left = document.createElement('div');
-          left.style.display = 'flex';
-          left.style.alignItems = 'center';
-          left.style.gap = '10px';
+    // render speakers ranking
+    window.uiRenderRanking = function (list) {
+      cardsEl.innerHTML = '';
+      list.forEach((s, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card' + (idx === 0 ? ' top' : '');
+        card.setAttribute('role', 'group');
+        card.setAttribute('aria-label', `متحدث ${s.id} بمتوسط ${s.avg_db} ديسيبل`);
 
-          const avatar = document.createElement('div');
-          avatar.className = 'avatar';
-          avatar.textContent = s.id.slice(0,4);
-          left.appendChild(avatar);
+        const header = document.createElement('header');
 
-          const txt = document.createElement('div');
-          txt.innerHTML = `<div style="font-weight:700">متحدث ${s.id.slice(0,8)}</div>
-                           <div class="sub" style="font-size:12px">الترتيب #${idx+1}</div>`;
-          left.appendChild(txt);
+        const left = document.createElement('div');
+        left.style.display = 'flex'; left.style.alignItems = 'center'; left.style.gap = '10px';
 
-          const right = document.createElement('div');
-          right.style.display = 'flex';
-          right.style.gap = '8px';
-          right.style.alignItems = 'center';
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = s.id.slice(0, 4);
+        left.appendChild(avatar);
 
-          const db = document.createElement('span');
-          db.className = 'db';
-          db.innerHTML = `<span aria-hidden="true">🔊</span> ${s.avg_db} dB`;
-          right.appendChild(db);
+        const txt = document.createElement('div');
+        txt.innerHTML = `<div style="font-weight:700">متحدث ${s.id.slice(0, 8)}</div>
+                           <div class="sub" style="font-size:12px">الترتيب #${idx + 1}</div>`;
+        left.appendChild(txt);
 
-          const speech = document.createElement('span');
-          speech.className = 'speech';
-          if(s.speech){
-            speech.innerHTML = `<span class="blip" aria-hidden="true"></span> <strong>يتكلم الآن</strong>`;
-          }else{
-            speech.innerHTML = `<span class="dot"></span> صامت`;
-          }
-          right.appendChild(speech);
+        const right = document.createElement('div');
+        right.style.display = 'flex'; right.style.gap = '8px'; right.style.alignItems = 'center'; right.style.flexWrap = 'wrap';
 
-          header.appendChild(left);
-          header.appendChild(right);
+        const db = document.createElement('span');
+        db.className = 'db';
+        db.innerHTML = `<span aria-hidden="true">🔊</span> ${s.avg_db} dB`;
+        right.appendChild(db);
 
-          const meter = document.createElement('div');
-          meter.className = 'meter';
-          const bar = document.createElement('div');
-          bar.className = 'bar';
-          const pct = Math.max(0, Math.min(100, (s.avg_db + 60) * 1.2)); // خريطة تقريبية
-          bar.style.width = pct + '%';
-          meter.appendChild(bar);
+        const speech = document.createElement('span');
+        speech.className = 'speech';
+        if (s.speech) {
+          speech.innerHTML = `<span class="blip" aria-hidden="true"></span> <strong>يتكلم الآن</strong>`;
+        } else {
+          speech.innerHTML = `<span class="dot"></span> صامت`;
+        }
+        right.appendChild(speech);
 
-          const rank = document.createElement('div');
-          rank.className = 'rank';
-          rank.textContent = `#${idx+1}`;
+        header.appendChild(left);
+        header.appendChild(right);
 
-          card.appendChild(header);
-          card.appendChild(rank);
-          card.appendChild(meter);
-          cardsEl.appendChild(card);
-        });
-      }
+        const meter = document.createElement('div');
+        meter.className = 'meter';
+        const bar = document.createElement('div');
+        bar.className = 'bar';
 
-      clearBtn.addEventListener('click', () => {
-        cardsEl.innerHTML = '';
+        // dB → %
+        const pct = Math.max(0, Math.min(100, (Number(s.avg_db) + 60) * 1.2));
+        bar.style.width = pct + '%';
+        meter.appendChild(bar);
+
+        const rank = document.createElement('div');
+        rank.className = 'rank';
+        rank.textContent = `#${idx + 1}`;
+
+        card.appendChild(header);
+        card.appendChild(rank);
+        card.appendChild(meter);
+        cardsEl.appendChild(card);
       });
-    </script>
-  </body>
-</html>
+    }
 
+    clearBtn.addEventListener('click', () => { cardsEl.innerHTML = ''; });
+  </script>
+</body>
+
+</html>
