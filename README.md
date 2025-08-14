@@ -18,14 +18,13 @@
 
 ## 🗂️ هيكل المشروع
 closest_speaker_web/
-├── app.py # الخادم Flask + Socket.IO + VAD + ترتيب dB
-├── requirements.txt # متطلبات Python
-├── README.md # هذا الملف
+├── app.py
+├── requirements.txt
+├── README.md
 ├── templates/
-│ └── index.html # الواجهة الأمامية (HTML + CSS + JS)
+│ └── index.html
 └── static/
-└── client.js # سكربت المتصفح لإرسال الصوت عبر Socket.IO
-
+└── client.js
 ---
 
 ## 🚀 التشغيل المحلي
